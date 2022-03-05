@@ -74,6 +74,7 @@ type devFlags struct {
 	debounceMS      int
 	devServerURL    string
 	appargs         string
+	skipModTidy     bool
 }
 
 // AddSubcommand adds the `dev` command for the Wails application
@@ -86,6 +87,7 @@ func AddSubcommand(app *clir.Cli, w io.Writer) error {
 	command.StringFlag("compiler", "Use a different go compiler to build, eg go1.15beta1", &flags.compilerCommand)
 	command.StringFlag("assetdir", "Serve assets from the given directory instead of using the provided asset FS", &flags.assetDir)
 	command.StringFlag("e", "Extensions to trigger rebuilds (comma separated) eg go", &flags.extensions)
+	command.BoolFlag("m", "Skip go mod tidy", &flags.skipModTidy)
 	command.StringFlag("reloaddirs", "Additional directories to trigger reloads (comma separated)", &flags.reloadDirs)
 	command.BoolFlag("browser", "Open application in browser", &flags.openBrowser)
 	command.BoolFlag("noreload", "Disable reload on asset change", &flags.noReload)
@@ -128,9 +130,11 @@ func AddSubcommand(app *clir.Cli, w io.Writer) error {
 		}
 
 		// Run go mod tidy to ensure we're up to date
-		err = runCommand(cwd, false, "go", "mod", "tidy")
-		if err != nil {
-			return err
+		if !flags.skipModTidy {
+			err = runCommand(cwd, false, "go", "mod", "tidy")
+			if err != nil {
+				return err
+			}
 		}
 
 		if flags.tags != "" {
